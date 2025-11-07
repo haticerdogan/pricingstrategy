@@ -96,7 +96,7 @@ The optimization grid-searches candidate prices and selects the one that maximiz
 **Isotonic Calibration:** Adjusts logistic regression probabilities to ensure monotonic, reliable win-rate curves — crucial for EV optimization.
 
 
-![Result Chart](docs/EVprob.png.png)
+![Result Chart](docs/EVprob.png)
 
 
 A smooth **Expected Profit (EV)** curve typically rises sharply as bid prices increase above cost,

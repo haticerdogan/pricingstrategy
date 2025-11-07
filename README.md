@@ -1,46 +1,83 @@
 # Bid Pricing & Win-Rate Modeling
+
 Commercial janitorial & day-porter services often bid competitively. Pricing too high reduces win-rate, while pricing too low cuts margins.
-My goal is to recommend a bid price that maximizes expected profit using historical bid outcomes while maintaining a high win probability.
+This project explores how historical bid outcomes can guide predictive pricing. I model the relationship between a proposal’s price/features and its probability of winning, then optimize pricing to maximize expected profit while staying above a margin floor.
+
+![Scenario B Flowchart](docs/flowchart.png)
 
 ### Problem Framing
 
-I model the business decision as:
+Service providers submit bids (mostly unstructured PDFs) with narrative and cost estimates.
+We hold ~10 years of historical bids. So I created synthetic a proposal text data and a synthetic structured data with 1,200 bids:
 
-Expected Profit = (Price − Cost) × Win Probability
+- Structured features (sqft, cost, client industry)
 
-EV(p) = (p - c) * P(Win) 
+- Service features extracted from PDFs (restrooms, kitchen, windows, etc.)
 
-Where:
+- Price per sqft and bid outcomes (awarded / not awarded)
 
-Win Probability is predicted by a calibrated classification model, calibrated probability of award based on price and job attributes
+**Business Goal:**
+Recommend a bid price that balances profitability and competitiveness.
 
-Price is a decision variable we optimize over aka bid price
+**Success Metrics:**
+- Win-rate lift vs. status-quo pricing
 
-Cost to deliver the service only if we win (variable delivery cost)
+- Expected profit
 
-A 10% minimum margin constraint is enforced on every bid
+- ROC-AUC and Brier score for classification & calibration.
 
-We use historical bids with known Awarded / Lost outcomes to learn how price sensitivity and site attributes influence win-rate.
+### Key Assumptions
 
-We assume that costs are only incurred if the contract is awarded.
-Therefore, the loss scenario has zero financial consequence, and the general expected value formula:
+- Pricing’s primary effect on win probability is captured through price per sqft
 
-EV=(Profit if win)P(win)+(Profit if lose)P(lose)
+- Losing a bid has no direct financial loss (opportunity cost excluded in model)
 
-simplifies to:
+- A 10% minimum margin guardrail must always hold
 
-EV=(p−c)⋅P(win)+(0)⋅(1−P(win))
+- Synthetic data is used to simulate pricing dynamics
 
-Janitorial/Day Porter costs (labor, materials, supplies) are not spent unless we win.
+- A detailed discussion of these assumptions is included in the notebook.
 
-Proposal preparation costs are assumed to be negligible or handled outside this model.
+### Modeling Approach
 
-We enforce a 10% minimum profit margin to ensure viability:
+1) Feature Engineering
 
-p-c / p  >= 0.10
+- price_per_sqft, log_sqft
 
-Thus, pricing optimization focuses entirely on the trade-off between:
-Higher price → higher margin but lower win probability
-Lower price → lower margin but higher win probability
+- Categorical: one-hot encoded client industry
 
-The model selects the price that maximizes expected profit, not just the highest margin or probability.
+- Text: boolean service requirements extracted via regex
+(assumes OCR already completed on PDFs)
+
+2) Win-Rate Model
+
+- Logistic Regression
+
+- StandardScaler on continuous features
+
+- Isotonic Calibration improves probability reliability
+
+3) Expected Profit Optimization
+
+Expected Value (profit) for price p:
+
+EV(p)=P(win∣p)×(p−c)
+
+Subject to:
+
+p - c / p ≥10%
+
+Model search over price candidates and return:
+
+- Highest expected profit
+- With ≥10% margin
+- And strong predicted win probability
+
+### Results
+
+Example proposal: 
+- Office space with 13,160 sqft 
+- Estimated cost: $998.52
+- Recommended price: $1,806.18
+- Expected profit: $350.35
+- Win probability: high (from model estimate)

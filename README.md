@@ -47,11 +47,11 @@ Recommend a bid price that balances profitability and competitiveness.
 
 **1) Feature Engineering**
 
-- Continuous: price_per_sqft, log_sqft
+- **Continuous:** price_per_sqft, log_sqft
 
-- Categorical: one-hot encoded client industry & cleaning frequency
+- **Categorical:** one-hot encoded client industry & cleaning frequency
 
-- Text-derived: Boolean service flags (restrooms, kitchen, windows, etc.)
+- **Text-derived:** Boolean service flags (restrooms, kitchen, windows, etc.)
 
 - Regex-based extraction assumes OCR preprocessed PDFs
 
@@ -103,14 +103,14 @@ A smooth **Expected Profit (EV)** curve typically rises sharply as bid prices in
 peaks at a balanced trade-off point where profit and win probability intersect,
 then declines as higher prices lower the likelihood of winning.
 
-In this run, the optimizer selected a large 30 000 sqft facility — a high-value but price-sensitive contract.
+In this run, the optimizer selected a large 30,000 sqft facility, a high-value but price-sensitive contract.
 At the optimal bid price of $4,540, the model projects an expected profit of $511 with a 28% chance of winning.
 This reflects a realistic dynamic for large commercial bids: fewer wins at higher prices, but each win contributes substantial profit.
 
 From a previous run with a 11,500 sqft job, the optimal price was about $1,450, yielding $307 expected profit and a 50 % win rate — a balanced equilibrium between profit and competitiveness.
 
 Together, these examples show how the model adapts to different contract sizes and competitive pressures.
-The optimal point balances both forces — typically yielding moderate profit with a moderate (~50 %) win rate.
+The optimal point balances both forces and typically yielding moderate profit with a moderate (~50 %) win rate.
 
 **How to Run**
 

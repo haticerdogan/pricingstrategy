@@ -15,47 +15,47 @@ Service providers submit bids (mostly as unstructured PDFs) that include narrati
 We assume access to ~10 years of historical bid data.
 To demonstrate the concept, synthetic data was generated consisting of 1,200 bids with:
 
-- Structured features: square footage (sqft), cost, client industry
+- **Structured features:** square footage (sqft), cost, client industry
 
-- Service features and cleaning frequency was extracted from proposal text (e.g., weekly, 3 times a week, restrooms, kitchen, windows)
+- **Extracted text features:** cleaning frequency, and service scope (e.g., restrooms, kitchens, windows)
 
-- Price per square foot (ppsf) and bid outcomes (awarded / not awarded)
+- **Price per square foot (ppsf)** and **bid outcome** (awarded / not awarded)
 
 **Business Goal:**
 Recommend a bid price that balances profitability and competitiveness.
 
 **Success Metrics:**
-- Improved win-rate and expected profit
+- Improved expected profit and win-rate
 
-- Model calibration quality (Brier Score)
+- Model calibration (Brier Score)
 
 - Ranking accuracy (ROC-AUC)
 
 ### Key Assumptions
 
-- Pricing’s main effect on win probability is via price per sqft.
+- Pricing’s main influence on win probability is via price per sqft.
 
-- Losing a bid has no direct cost (opportunity cost ignored).
+- Losing a bid has no direct financial cost (opportunity cost ignored).
 
 - A 10% minimum margin constraint is enforced.
 
-- Data is synthetic, built to simulate real pricing dynamics.
+- All data are synthetic, designed to mimic realistic bidding behavior.
 
-- Detailed assumption discussion and validation are in the notebook.
+- Detailed assumptions and validation are in the notebook.
 
 ### Modeling Approach
 
-1) Feature Engineering
+**1) Feature Engineering**
 
 - Continuous: price_per_sqft, log_sqft
 
-- Categorical: one-hot encoded client industry and cleaning frequency
+- Categorical: one-hot encoded client industry & cleaning frequency
 
 - Text-derived: Boolean service flags (restrooms, kitchen, windows, etc.)
 
-- Regex-based extraction assumes OCR preprocessing on PDFs
+- Regex-based extraction assumes OCR preprocessed PDFs
 
-2) Win-Rate Model
+**2) Win-Rate Model**
 
 - Logistic Regression with standardized inputs
 
@@ -63,9 +63,9 @@ Recommend a bid price that balances profitability and competitiveness.
 
 - Evaluated using ROC-AUC (ranking ability) and Brier Score (probability accuracy)
 
-3) Expected Profit Optimization
+**3) Expected Profit Optimization**
 
-The expected value of profit for a proposed price (p) is modeled as:
+The expected value of profit for a proposed price (p) is:
 
 $$
 EV(p) = (p - c) \cdot P(\text{win} \mid p)
@@ -83,37 +83,38 @@ Where:
 - $c$ = operational delivery cost 
 - $P(\text{win} \mid p)$ = calibrated probability of winning given bid price
 
-The optimization procedure searches across a price grid and selects the price that maximizes expected profit while satisfying the margin constraint.
+The optimization grid-searches candidate prices and selects the one that maximizes expected profit while maintaining the margin floor.
 
 ### Results
 
 **ROC-AUC:** Measures how well the model ranks winning bids above losing bids.
-(0.83 indicates strong discrimination and realistic sensitivity to price.)
+(0.87 indicates strong discrimination and realistic sensitivity to price)
 
 **Brier Score:** Assesses how accurate probability predictions are (lower is better).
-(~0.17 shows good calibration on synthetic data.)
+(~0.14 shows good calibration on synthetic data.)
 
 **Isotonic Calibration:** Adjusts logistic regression probabilities to ensure monotonic, reliable win-rate curves — crucial for EV optimization.
 
 
-**Blue line (Expected Profit):** rises as margin improves, then declines as win probability drops.
-It stops where the bid price falls below the 10% margin floor.
+![Result Chart](docs/EVprob.png.png)
 
-**Orange line (Win Probability):** decreases smoothly as price increases.
 
-**Red dashed line:** marks the optimal price point — where expected profit peaks.
+A smooth **Expected Profit (EV)** curve typically rises sharply as bid prices increase above cost,
+peaks at a balanced trade-off point where profit and win probability intersect,
+then declines as higher prices lower the likelihood of winning.
 
-This reflects realistic business dynamics:
+In this run, the optimizer selected a large 30 000 sqft facility — a high-value but price-sensitive contract.
+At the optimal bid price of $4,540, the model projects an expected profit of $511 with a 28% chance of winning.
+This reflects a realistic dynamic for large commercial bids: fewer wins at higher prices, but each win contributes substantial profit.
 
-- Low prices → high win probability but thin margins
+From a previous run with a 11,500 sqft job, the optimal price was about $1,450, yielding $307 expected profit and a 50 % win rate — a balanced equilibrium between profit and competitiveness.
 
-- High prices → high margins but low win probability
-
-- Optimal pricing → balanced profitability and competitiveness.
+Together, these examples show how the model adapts to different contract sizes and competitive pressures.
+The optimal point balances both forces — typically yielding moderate profit with a moderate (~50 %) win rate.
 
 **How to Run**
 
-Simply open the notebook and run all cells in order - all required libraries (e.g., numpy, pandas, scikit-learn, matplotlib) are already imported.
-The notebook is self-contained and works in standard Python environments like Anaconda, JupyterLab, or Google Colab.
+Simply open the notebook and run all cells in order. All required libraries (e.g., numpy, pandas, scikit-learn, matplotlib) are imported within the notebook.
+The notebook is self-contained and works in standard Python environments like Anaconda, Jupyter Notebook, or Google Colab.
 
 *Tip:* The notebook uses built-in randomization for synthetic data, so your numbers may vary slightly on each run, but the overall behavior and trends will remain consistent.

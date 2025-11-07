@@ -1,83 +1,119 @@
 # Bid Pricing & Win-Rate Modeling
 
-Commercial janitorial & day-porter services often bid competitively. Pricing too high reduces win-rate, while pricing too low cuts margins.
-This project explores how historical bid outcomes can guide predictive pricing. I model the relationship between a proposal’s price/features and its probability of winning, then optimize pricing to maximize expected profit while staying above a margin floor.
+Commercial janitorial and day-porter services often operate in competitive bidding environments.
+Pricing too high reduces win-rate, while pricing too low erodes profit margins.
+
+This project explores how historical bid outcomes can guide predictive pricing.
+I model the relationship between a proposal’s price and features and its probability of winning,
+then optimize pricing to maximize expected profit while maintaining a minimum margin guardrail.
 
 ![Scenario B Flowchart](docs/flowchart.png)
 
 ### Problem Framing
 
-Service providers submit bids (mostly unstructured PDFs) with narrative and cost estimates.
-We hold ~10 years of historical bids. So I created synthetic a proposal text data and a synthetic structured data with 1,200 bids:
+Service providers submit bids (mostly as unstructured PDFs) that include narrative text and cost estimates.
+We assume access to ~10 years of historical bid data.
+To demonstrate the concept, synthetic data was generated consisting of 1,200 bids with:
 
-- Structured features (sqft, cost, client industry)
+- Structured features: square footage (sqft), cost, client industry
 
-- Service features extracted from PDFs (restrooms, kitchen, windows, etc.)
+- Service features and cleaning frequency was extracted from proposal text (e.g., weekly, 3 times a week, restrooms, kitchen, windows)
 
-- Price per sqft and bid outcomes (awarded / not awarded)
+- Price per square foot (ppsf) and bid outcomes (awarded / not awarded)
 
 **Business Goal:**
 Recommend a bid price that balances profitability and competitiveness.
 
 **Success Metrics:**
-- Win-rate lift vs. status-quo pricing
+- Improved win-rate and expected profit
 
-- Expected profit
+- Model calibration quality (Brier Score)
 
-- ROC-AUC and Brier score for classification & calibration.
+- Ranking accuracy (ROC-AUC)
 
 ### Key Assumptions
 
-- Pricing’s primary effect on win probability is captured through price per sqft
+- Pricing’s main effect on win probability is via price per sqft.
 
-- Losing a bid has no direct financial loss (opportunity cost excluded in model)
+- Losing a bid has no direct cost (opportunity cost ignored).
 
-- A 10% minimum margin guardrail must always hold
+- A 10% minimum margin constraint is enforced.
 
-- Synthetic data is used to simulate pricing dynamics
+- Data is synthetic, built to simulate real pricing dynamics.
 
-- A detailed discussion of these assumptions is included in the notebook.
+- Detailed assumption discussion and validation are in the notebook.
 
 ### Modeling Approach
 
 1) Feature Engineering
 
-- price_per_sqft, log_sqft
+- Continuous: price_per_sqft, log_sqft
 
-- Categorical: one-hot encoded client industry
+- Categorical: one-hot encoded client industry and cleaning frequency
 
-- Text: boolean service requirements extracted via regex
-(assumes OCR already completed on PDFs)
+- Text-derived: Boolean service flags (restrooms, kitchen, windows, etc.)
+
+- Regex-based extraction assumes OCR preprocessing on PDFs
 
 2) Win-Rate Model
 
-- Logistic Regression
+- Logistic Regression with standardized inputs
 
-- StandardScaler on continuous features
+- Isotonic Calibration applied post-modeling to improve probability reliability
 
-- Isotonic Calibration improves probability reliability
+- Evaluated using ROC-AUC (ranking ability) and Brier Score (probability accuracy)
 
 3) Expected Profit Optimization
 
-Expected Value (profit) for price p:
+The expected value of profit for a proposed price (p) is modeled as:
 
-EV(p)=P(win∣p)×(p−c)
+$$
+EV(p) = (p - c) \cdot P(\text{win} \mid p)
+$$
 
-Subject to:
+subject to the minimum margin constraint:
 
-p - c / p ≥10%
+$$
+\frac{p - c}{p} \ge 0.10
+$$
 
-Model search over price candidates and return:
+Where:
 
-- Highest expected profit
-- With ≥10% margin
-- And strong predicted win probability
+- $p$ = proposed bid price
+- $c$ = operational delivery cost 
+- $P(\text{win} \mid p)$ = calibrated probability of winning given bid price
+
+The optimization procedure searches across a price grid and selects the price that maximizes expected profit while satisfying the margin constraint.
 
 ### Results
 
-Example proposal: 
-- Office space with 13,160 sqft 
-- Estimated cost: $998.52
-- Recommended price: $1,806.18
-- Expected profit: $350.35
-- Win probability: high (from model estimate)
+**ROC-AUC:** Measures how well the model ranks winning bids above losing bids.
+(0.83 indicates strong discrimination and realistic sensitivity to price.)
+
+**Brier Score:** Assesses how accurate probability predictions are (lower is better).
+(~0.17 shows good calibration on synthetic data.)
+
+**Isotonic Calibration:** Adjusts logistic regression probabilities to ensure monotonic, reliable win-rate curves — crucial for EV optimization.
+
+
+**Blue line (Expected Profit):** rises as margin improves, then declines as win probability drops.
+It stops where the bid price falls below the 10% margin floor.
+
+**Orange line (Win Probability):** decreases smoothly as price increases.
+
+**Red dashed line:** marks the optimal price point — where expected profit peaks.
+
+This reflects realistic business dynamics:
+
+- Low prices → high win probability but thin margins
+
+- High prices → high margins but low win probability
+
+- Optimal pricing → balanced profitability and competitiveness.
+
+**How to Run**
+
+Simply open the notebook and run all cells in order - all required libraries (e.g., numpy, pandas, scikit-learn, matplotlib) are already imported.
+The notebook is self-contained and works in standard Python environments like Anaconda, JupyterLab, or Google Colab.
+
+*Tip:* The notebook uses built-in randomization for synthetic data, so your numbers may vary slightly on each run, but the overall behavior and trends will remain consistent.
